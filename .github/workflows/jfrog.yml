@@ -1,0 +1,38 @@
+name: JFrog Artifactory Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  jfrog-auth:
+    runs-on: windows-latest
+    steps:
+      
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Set up JFrog CLI
+      - name: Set up JFrog CLI
+        run: |
+          Invoke-WebRequest -Uri "https://releases.jfrog.io/artifactory/jfrog-cli/v2/x86_64/jfrog-cli-windows-amd64.exe" -OutFile "jfrog.exe"
+          Move-Item -Path "jfrog.exe" -Destination "$Env:ProgramFiles\jfrog\jfrog.exe"
+          $Env:PATH += ";$Env:ProgramFiles\jfrog"
+          
+      # Authenticate with JFrog using API Key
+      - name: Authenticate with JFrog Artifactory
+        run: |
+          # Store the JFrog API key in the environment
+          $env:JFROG_API_KEY = "${{ secrets.JFROG_API_KEY }}"
+          
+          # Use JFrog CLI to configure authentication
+          jfrog rt c --url=https://your-instance.jfrog.io/artifactory --apikey=$env:JFROG_API_KEY
+
+      # JFrog Artifactory action (e.g., upload artifact)
+      - name: Upload Artifact to Artifactory
+        run: |
+          jfrog rt u "path/to/artifact/*" "your-repository/path/to/target/"
